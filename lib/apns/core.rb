@@ -9,6 +9,8 @@ module APNS
   @pem = nil # this should be the path of the pem file not the contentes
   @pass = nil
 
+  SLEEP_INTERVAL = 0.3
+
   class << self
     attr_accessor :host, :pem, :port, :pass
   end
@@ -16,6 +18,25 @@ module APNS
   def self.send_notification(device_token, message)
     n = APNS::Notification.new(device_token, message)
     self.send_notifications([n])
+  end
+
+  def self.send_many(notifications)
+    sock, ssl = self.open_connection
+
+    notifications.each do |n|
+      begin
+        ssl.write(n.bytes)
+        sleep SLEEP_INTERVAL
+      rescue Errno::EPIPE => e
+        sock.close
+        ssl.close
+        sock, ssl = self.open_connection
+        ssl.write(n.bytes)
+      end
+    end
+
+    ssl.close
+    sock.close
   end
 
   def self.send_notifications(notifications)

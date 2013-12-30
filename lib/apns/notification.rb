@@ -65,5 +65,10 @@ module APNS
       aps.merge!(self.other) if self.other
       aps.to_json
     end    
+
+    def bytes
+      pn = packaged_notification
+      [2, pn.bytesize].pack('CN') + pn
+    end
   end
 end
